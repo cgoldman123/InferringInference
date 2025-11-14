@@ -58,7 +58,8 @@ def JMatToVec(JMat):
 
 def extractParams(theta, lG, Nx, Nh, Nr):
 	# extract the parameters
-	NJ = np.int(Nx*(Nx+1)/2)
+	# carter changed np.int -> int
+	NJ = int(Nx*(Nx+1)/2)
 	
 	lam = theta[0]
 	G = theta[1:1+lG]

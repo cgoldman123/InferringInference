@@ -52,7 +52,7 @@ def generateBroadH(Ny,T,dT,scaling):
 	shape   = 1 # gamma shape parameter
 	L       = T//dT + 1*(T%dT != 0)
 	gammma  = np.random.gamma(shape,scaling,(Ny,L))
-	yInd    = gammma*np.random.randn(Ny,L)
+	yInd    = gammma*np.random.randn(Ny,L) # this is multiplying gamma by sample from v ~ N(0,1)
 	yMat = np.zeros([Ny,T])
 
 	# Then repeat each independent h for Nh time steps
@@ -75,7 +75,7 @@ def runTAP(x0, yMat, Qpr, Qobs, theta, nltype):
 	theta : parameters of the TAP dynamics
 	lam   : low pass fitlering constant for TAP dynamics
 	U     : embedding matrix from latent space to neural activity
-	V     : emedding matrix from input space to latent variable space
+	V     : emedding matrix from input space to latent variable space (Ns by Ny)
 	J     : coupling matrix of the underlying distribution
 	G     : global hyperparameters
 	nltype: outer nonlinearity in TAP dynamics
@@ -98,6 +98,7 @@ def runTAP(x0, yMat, Qpr, Qobs, theta, nltype):
 
 	J2   = J**2
 
+	# Interesting that the input is constantly applied; they don't wait until convergence
 	for t in range(1,T):  
 		
 		y       = yMat[...,t-1].T # y should have shape Ny x B
@@ -109,7 +110,7 @@ def runTAP(x0, yMat, Qpr, Qobs, theta, nltype):
 		J21     = np.expand_dims(np.dot(J2,np.ones([Ns])),1)
 		J2x     = np.dot(J2,x)
 		J2x2    = np.dot(J2,x2)
-
+		# argf is Ns x B. This sum aggregates all the messages that get sent to each node for each batch. All computation for each batch is separate.
 		argf    = np.dot(V,y) + G[0]*J1 + G[1]*Jx + G[2]*Jx2 + G[9]*J21 + G[10]*J2x + G[11]*J2x2 + x*( G[3]*J1 + G[4]*Jx + G[5]*Jx2 + G[12]*J21 + G[13]*J2x + G[14]*J2x2 ) + x2*(G[6]*J1 + G[7]*Jx + G[8]*Jx2 + G[15]*J21 + G[16]*J2x + G[17]*J2x2)
 		xnew    = (1-lam)*x + lam*nonlinearity(argf, nltype)[0] 
 		xnew    += np.random.multivariate_normal(np.zeros(Ns),Qpr,B).T

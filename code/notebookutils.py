@@ -98,7 +98,8 @@ def permuteJ(J, PermMat):
 
 	for ii in range(Ns):
 		for jj in range(Ns):
-			Jhat[ii,jj] = J[np.int(x_idx[ii]),np.int(x_idx[jj])]
+			# carter changed np.int
+			Jhat[ii,jj] = J[int(x_idx[ii]),int(x_idx[jj])]
 	return Jhat
 
 

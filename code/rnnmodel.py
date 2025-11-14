@@ -42,10 +42,10 @@ class RNN(nn.Module):
 		h.append(hidden_activity)
 
 		for t in range(1,T):
-			
+			# combined_inputs_hiddenlayer consists of hidden layer activations  and input from previous time point
 			combined_inputs_hiddenlayer = torch.cat((inputs[:,t-1,:], hidden_activity),1)
 			hidden_activity = self.activation_function(self.input_to_hidden(combined_inputs_hiddenlayer))
-			
+			# combined_inputs_outputlayer consists of hidden layer activation from this time point and output layer activation from previous
 			combined_inputs_outputlayer = torch.cat((hidden_activity, output_activity),1)
 			output_activity = self.activation_function(self.hidden_to_output(combined_inputs_outputlayer))
 			

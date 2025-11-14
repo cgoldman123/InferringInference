@@ -3,6 +3,9 @@ Code for training and inferring the TAP model brain.
 
 Dependencies: Python 3.5.6 or newer, PyTorch 1.5.1 or newer. 
 
+Remember to switch the python kernel to the inferring_inference conda environment before running the Jupyter notebooks.
+Also remember to use numpy 1.x (e.g., numpy=1.26.4)
+
 ## Description of contents
 ### code
 This folder contains the main python code: 
