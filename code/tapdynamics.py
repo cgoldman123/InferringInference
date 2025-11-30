@@ -120,6 +120,72 @@ def runTAP(x0, yMat, Qpr, Qobs, theta, nltype):
 
 	return np.array(xMat).transpose(2,1,0)
 
+def runSamplingTAP(x0, yMat, Qpr, Qobs, theta, nltype):
+
+	"""
+	Function that generates the TAP dynamics
+
+	Inputs: 
+	x0 	  : initial value of xt, of size Nx x B
+	yMat  : of size B x Ny x T-1, specifies inputs y(t) for t = 0,..,T-2
+	Qpr   : covariance of process noise
+	Qobs  : covariance of observation noise
+	theta : parameters of the TAP dynamics
+	lam   : low pass fitlering constant for TAP dynamics
+	U     : embedding matrix from latent space to neural activity
+	V     : emedding matrix from input space to latent variable space (Ns by Ny)
+	J     : coupling matrix of the underlying distribution
+	G     : global hyperparameters
+	nltype: outer nonlinearity in TAP dynamics
+
+	Outputs: 
+	xMat  : latent variables of shape B x Ns x T
+	"""
+	B  = yMat.shape[0] 		# no. of batches 
+	Ny = yMat.shape[1] 		# no. of input dimensions
+	T  = yMat.shape[2] + 1 	# no. of time steps
+	Ns = Qpr.shape[0]  		# no. of latent dimensions
+	Nr = Qobs.shape[0] 		# no. of output dimensions
+
+	lam, G, J, U, V = extractParams(theta, 18, Ns, Ny, Nr) # G has 18 parameters for now
+
+	xMat 	= []
+	#x 		= np.random.rand(Ns,B)
+	x 		= x0
+	xMat.append(x)
+	samples_per_timestep = 1000			
+
+	J2   = J**2
+
+	# Interesting that the input is constantly applied; they don't wait until convergence
+	for t in range(1,T):  
+		samples_arr = []
+		for s in range(samples_per_timestep):
+			# For Gibb's sampling, we draw samples for each node sequentially
+			for node in range(Ns):
+				y       = yMat[...,t-1].T # y should have shape Ny x B
+
+				x2      = x**2
+				J1      = np.expand_dims(np.dot(J,np.ones([Ns])),1)
+				Jx      = np.dot(J,x)
+				Jx2     = np.dot(J,x2)
+				J21     = np.expand_dims(np.dot(J2,np.ones([Ns])),1)
+				J2x     = np.dot(J2,x)
+				J2x2    = np.dot(J2,x2)
+				# argf is Ns x B. This sum aggregates all the messages that get sent to each node for each batch. All computation for each batch is separate.
+				argf    = np.dot(V,y) + G[0]*J1 + G[1]*Jx + G[2]*Jx2 + G[9]*J21 + G[10]*J2x + G[11]*J2x2 + x*( G[3]*J1 + G[4]*Jx + G[5]*Jx2 + G[12]*J21 + G[13]*J2x + G[14]*J2x2 ) + x2*(G[6]*J1 + G[7]*Jx + G[8]*Jx2 + G[15]*J21 + G[16]*J2x + G[17]*J2x2)
+				argf    += np.random.multivariate_normal(np.zeros(Ns),Qpr,B).T
+				sampling_probs    = nonlinearity(argf, 'sigmoid')[0] 
+				samples = np.random.rand(*sampling_probs.shape) < sampling_probs
+				# only update one node at a time
+				xnew = x.copy()
+				xnew[node,:] = samples[node,:]
+				samples_arr.append(xnew)
+				x 		= xnew
+		# Append the average of the samples array to xMat
+		xMat.append(np.mean(samples_arr,axis=0))
+	return np.array(xMat).transpose(2,1,0)
+
 
 def generate_Input(modelparameters, B, T, T_low, T_high, yG_low, yG_high):
 
@@ -142,7 +208,7 @@ def generate_Input(modelparameters, B, T, T_low, T_high, yG_low, yG_high):
 	return np.array(y)
 
 
-def generate_TAPdynamics(theta, modelparameters, B, T, T_low, T_high, yG_low, yG_high):
+def generate_TAPdynamics(theta, modelparameters, B, T, T_low, T_high, yG_low, yG_high,TAP_func=runTAP):
 	
 	"""
 	Function that generates the TAP dynamics
@@ -173,7 +239,7 @@ def generate_TAPdynamics(theta, modelparameters, B, T, T_low, T_high, yG_low, yG
 	y = generate_Input(modelparameters, B, T, T_low, T_high, yG_low, yG_high)
 
 	x0 	= np.random.rand(Ns,B) 								# initial values of x
-	x 	= runTAP(x0, y, Q_process, Q_obs, theta, nltype) 	# run inputs through TAP dynamics
+	x 	= TAP_func(x0, y, Q_process, Q_obs, theta, nltype) 	# run inputs through TAP dynamics
 
 	r = torch.matmul(torch.tensor(U),torch.tensor(x)).data.numpy()
 	r += np.random.multivariate_normal(np.zeros(Nr),Q_obs,(B,T)).transpose(0,2,1)
