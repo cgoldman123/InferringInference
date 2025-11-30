@@ -3,7 +3,13 @@ Code for training and inferring the TAP model brain.
 
 Dependencies: Python 3.5.6 or newer, PyTorch 1.5.1 or newer. 
 
-Remember to switch the python kernel to the inferring_inference conda environment before running the Jupyter notebooks.
+Remember to switch the python kernel to the proper virtual environment (e.g., inferring_inference conda environment or .venv on demiurge) before running the Jupyter notebooks.
+For demiurge, I activated the .venv virtual environment
+    source ./.venv/bin/activate
+And then I installed ipykernel
+    pip install ipykernel -U --user --force-reinstall
+And then I installed other modules
+    pip install matplotlib, torch, scipy, scikit-learn
 Also remember to use numpy 1.x (e.g., numpy=1.26.4)
 
 ## Description of contents
