@@ -247,7 +247,7 @@ def generate_TAPdynamics(theta, modelparameters, B, T, T_low, T_high, yG_low, yG
 	return y, x, r
 
 
-def generate_TAPbrain_dynamics(brain, theta, modelparameters, B, T, T_low, T_high, yG_low, yG_high, T_clip, use_cuda):
+def generate_TAPbrain_dynamics(brain, theta, modelparameters, B, T, T_low, T_high, yG_low, yG_high, T_clip, use_cuda,TAP_func=runTAP):
 
 	"""
 	Function that generates the TAP brain dynamics
@@ -272,7 +272,7 @@ def generate_TAPbrain_dynamics(brain, theta, modelparameters, B, T, T_low, T_hig
 	"""
 
 	# generate input data and latent dynamics
-	y, x, _ = generate_TAPdynamics(theta, modelparameters, B, T+T_clip, T_low, T_high, yG_low, yG_high)
+	y, x, _ = generate_TAPdynamics(theta, modelparameters, B, T+T_clip, T_low, T_high, yG_low, yG_high,TAP_func=TAP_func)
 
 	# pass the inputs through the brain
 	with torch.no_grad():
