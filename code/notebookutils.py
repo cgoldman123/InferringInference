@@ -13,7 +13,9 @@ def loadbrain(fname, use_cuda):
 	"""
 	Load the tap brain model
 	"""
-	brain = torch.load(fname + '.pt')
+	# Added the weights_only=False argument since we want to load more than just tensors
+	#brain = torch.load(fname + '.pt')
+	brain = torch.load(fname + '.pt',weights_only=False)
 
 	if use_cuda and torch.cuda.is_available():
 		brain.cuda()
